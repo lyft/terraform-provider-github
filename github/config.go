@@ -210,6 +210,8 @@ func (c *Config) Clients() (interface{}, error) {
 				owner.id = remoteOrg.GetID()
 				owner.IsOrganization = true
 			}
+		} else {
+			return nil, err
 		}
 	}
 	return &owner, nil

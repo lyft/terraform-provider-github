@@ -247,7 +247,7 @@ func TestAccGithubRepositories(t *testing.T) {
 					"main",
 				),
 			),
-			// FIXME: Deferred until https://github.com/terraform-providers/terraform-provider-github/issues/513
+			// FIXME: Deferred until https://github.com/integrations/terraform-provider-github/issues/513
 			// > Cannot update default branch for an empty repository. Please init the repository and push first
 			// "after": resource.ComposeTestCheckFunc(
 			// 	resource.TestCheckResourceAttr(
@@ -611,6 +611,58 @@ func TestAccGithubRepositories(t *testing.T) {
 			t.Run("with an organization account", func(t *testing.T) {
 				testCase(t, organization)
 			})
+		})
+
+	})
+}
+func TestAccGithubRepositoryPages(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("manages the pages feature for a repository", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name         = "tf-acc-%s"
+				auto_init    = true
+				pages {
+					source {
+						branch = "main"
+					}
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_repository.test", "pages.0.source.0.branch",
+				"main",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
 		})
 
 	})

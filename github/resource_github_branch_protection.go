@@ -28,6 +28,16 @@ func resourceGithubBranchProtection() *schema.Resource {
 				Required:    true,
 				Description: "",
 			},
+			PROTECTION_ALLOWS_DELETIONS: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			PROTECTION_ALLOWS_FORCE_PUSHES: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			PROTECTION_IS_ADMIN_ENFORCED: {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -66,8 +76,9 @@ func resourceGithubBranchProtection() *schema.Resource {
 				},
 			},
 			PROTECTION_REQUIRES_STATUS_CHECKS: {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: statusChecksDiffSuppression,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						PROTECTION_REQUIRES_STRICT_STATUS_CHECKS: {
@@ -121,6 +132,8 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 	input := githubv4.CreateBranchProtectionRuleInput{
+		AllowsDeletions:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
+		AllowsForcePushes:            githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
 		DismissesStaleReviews:        githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:              githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
 		Pattern:                      githubv4.String(data.Pattern),
@@ -160,7 +173,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 		"id": d.Id(),
 	}
 
-	ctx := context.WithValue(context.Background(), "id", d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Query(ctx, &query, variables)
 	if err != nil {
@@ -178,6 +191,16 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	err = d.Set(PROTECTION_PATTERN, protection.Pattern)
 	if err != nil {
 		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_PATTERN, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_ALLOWS_DELETIONS, protection.AllowsDeletions)
+	if err != nil {
+		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_DELETIONS, protection.Repository.Name, protection.Pattern, d.Id())
+	}
+
+	err = d.Set(PROTECTION_ALLOWS_FORCE_PUSHES, protection.AllowsForcePushes)
+	if err != nil {
+		log.Printf("[WARN] Problem setting '%s' in %s %s branch protection (%s)", PROTECTION_ALLOWS_FORCE_PUSHES, protection.Repository.Name, protection.Pattern, d.Id())
 	}
 
 	err = d.Set(PROTECTION_IS_ADMIN_ENFORCED, protection.IsAdminEnforced)
@@ -225,6 +248,8 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 	}
 	input := githubv4.UpdateBranchProtectionRuleInput{
 		BranchProtectionRuleID:       d.Id(),
+		AllowsDeletions:              githubv4.NewBoolean(githubv4.Boolean(data.AllowsDeletions)),
+		AllowsForcePushes:            githubv4.NewBoolean(githubv4.Boolean(data.AllowsForcePushes)),
 		DismissesStaleReviews:        githubv4.NewBoolean(githubv4.Boolean(data.DismissesStaleReviews)),
 		IsAdminEnforced:              githubv4.NewBoolean(githubv4.Boolean(data.IsAdminEnforced)),
 		Pattern:                      githubv4.NewString(githubv4.String(data.Pattern)),
@@ -241,7 +266,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 		ReviewDismissalActorIDs:      githubv4NewIDSlice(githubv4IDSlice(data.ReviewDismissalActorIDs)),
 	}
 
-	ctx := context.WithValue(context.Background(), "id", d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err = client.Mutate(ctx, &mutate, input, nil)
 	if err != nil {
@@ -263,7 +288,7 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 		BranchProtectionRuleID: d.Id(),
 	}
 
-	ctx := context.WithValue(context.Background(), "id", d.Id())
+	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 	client := meta.(*Owner).v4client
 	err := client.Mutate(ctx, &mutate, input, nil)
 

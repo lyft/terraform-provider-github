@@ -6,10 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
-func TestAccGithubBranchProtection(t *testing.T) {
+func TestAccGithubBranchProtectionV3_defaults(t *testing.T) {
 
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -22,10 +21,10 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		  auto_init = true
 		}
 
-		resource "github_branch_protection" "test" {
+		resource "github_branch_protection_v3" "test" {
 
-		  repository_id  = github_repository.test.node_id
-		  pattern        = "main"
+		  repository  = github_repository.test.name
+		  branch      = "main"
 
 		}
 
@@ -33,19 +32,19 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "pattern", "main",
+				"github_branch_protection_v3.test", "branch", "main",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "require_signed_commits", "false",
+				"github_branch_protection_v3.test", "require_signed_commits", "false",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_status_checks.#", "0",
+				"github_branch_protection_v3.test", "required_status_checks.#", "0",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.#", "0",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.#", "0",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "push_restrictions.#", "0",
+				"github_branch_protection_v3.test", "push_restrictions.#", "0",
 			),
 		)
 
@@ -58,14 +57,6 @@ func TestAccGithubBranchProtection(t *testing.T) {
 						Config: config,
 						Check:  check,
 					},
-					{
-						ResourceName:      "github_branch_protection.test",
-						ImportState:       true,
-						ImportStateVerify: true,
-						ImportStateIdFunc: branchProtectionImportStateIdFunc(
-							fmt.Sprintf("tf-acc-test-%s", randomID), "main",
-						),
-					},
 				},
 			})
 		}
@@ -75,7 +66,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			t.Skip("individual account not supported for this operation")
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
@@ -83,6 +74,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 	})
+}
+func TestAccGithubBranchProtectionV3_required_status_checks(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required status checks", func(t *testing.T) {
 
@@ -93,12 +87,12 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  auto_init = true
 			}
 
-			resource "github_branch_protection" "test" {
+			resource "github_branch_protection_v3" "test" {
 
-			  repository_id  = github_repository.test.node_id
-			  pattern        = "main"
+			  repository  = github_repository.test.name
+			  branch      = "main"
 
-				required_status_checks {
+			  required_status_checks {
 			    strict   = true
 			    contexts = ["github/foo"]
 			  }
@@ -109,7 +103,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_status_checks.#", "1",
+				"github_branch_protection_v3.test", "required_status_checks.#", "1",
 			),
 		)
 
@@ -131,7 +125,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			t.Skip("individual account not supported for this operation")
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
@@ -139,6 +133,9 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 	})
+}
+func TestAccGithubBranchProtectionV3_required_pull_request_reviews(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures required pull request reviews", func(t *testing.T) {
 
@@ -149,15 +146,15 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  auto_init = true
 			}
 
-			resource "github_branch_protection" "test" {
+			resource "github_branch_protection_v3" "test" {
 
-			  repository_id  = github_repository.test.node_id
-			  pattern        = "main"
+			  repository  = github_repository.test.name
+			  branch      = "main"
 
-				required_pull_request_reviews {
-						dismiss_stale_reviews      = true
-						require_code_owner_reviews = true
-				}
+			  required_pull_request_reviews {
+				dismiss_stale_reviews      = true
+				require_code_owner_reviews = true
+			  }
 
 			}
 
@@ -165,16 +162,16 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.#", "1",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.#", "1",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.dismiss_stale_reviews", "true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.require_code_owner_reviews", "true",
 			),
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
+				"github_branch_protection_v3.test", "required_pull_request_reviews.0.required_approving_review_count", "1",
 			),
 		)
 
@@ -196,7 +193,7 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
+			t.Skip("individual account not supported for this operation")
 		})
 
 		t.Run("with an organization account", func(t *testing.T) {
@@ -204,6 +201,11 @@ func TestAccGithubBranchProtection(t *testing.T) {
 		})
 
 	})
+}
+
+func TestAccGithubBranchProtectionV3_branch_push_restrictions(t *testing.T) {
+
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("configures branch push restrictions", func(t *testing.T) {
 
@@ -213,25 +215,31 @@ func TestAccGithubBranchProtection(t *testing.T) {
 			  auto_init = true
 			}
 
-			data "github_user" "test" {
-			  username = "%s"
+			resource "github_team" "test" {
+				name = "tf-acc-test-%[1]s"
+			}
+			  
+			resource "github_team_repository" "test" {
+				team_id    = "${github_team.test.id}"
+				repository = "${github_repository.test.name}"
+				permission = "pull"
 			}
 
-			resource "github_branch_protection" "test" {
+			resource "github_branch_protection_v3" "test" {
 
-			  repository_id   = github_repository.test.name
-			  pattern       	= "main"
+			  repository   = github_repository.test.name
+			  branch       = "main"
 
-			  push_restrictions = [
-			    data.github_user.test.node_id,
-			  ]
-
+			  restrictions {
+				teams = ["${github_team.test.slug}"]
+			  }
+			  
 			}
-	`, randomID, testOwnerFunc())
+			`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "push_restrictions.#", "1",
+				"github_branch_protection_v3.test", "restrictions.#", "1",
 			),
 		)
 
@@ -262,68 +270,4 @@ func TestAccGithubBranchProtection(t *testing.T) {
 
 	})
 
-	t.Run("configures force pushes and deletions", func(t *testing.T) {
-
-		config := fmt.Sprintf(`
-			resource "github_repository" "test" {
-			  name      = "tf-acc-test-%s"
-			  auto_init = true
-			}
-
-			data "github_user" "test" {
-			  username = "%s"
-			}
-
-			resource "github_branch_protection" "test" {
-
-			  repository_id   = github_repository.test.name
-			  pattern       	= "main"
-				allows_deletions = true
-				allows_force_pushes = true
-
-			}
-	`, randomID, testOwnerFunc())
-
-		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "allows_deletions", "true",
-			),
-			resource.TestCheckResourceAttr(
-				"github_branch_protection.test", "allows_force_pushes", "true",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			t.Skip("individual account not supported for this operation")
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
-	})
-
-}
-
-func branchProtectionImportStateIdFunc(repo, pattern string) resource.ImportStateIdFunc {
-	return func(s *terraform.State) (string, error) {
-		return fmt.Sprintf("%s:%s", repo, pattern), nil
-	}
 }
